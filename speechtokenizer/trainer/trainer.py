@@ -244,11 +244,12 @@ class SpeechTokenizerTrainer(nn.Module):
         if not exists(path):
             ckpts = sorted(self.results_folder.glob(f'SpeechTokenizerTrainer_*'))
             path = str(ckpts[-1])
-        generator = self.accelerator.unwrap_model(self.generator)
         pkg = torch.load(path, map_location='cpu')
+        generator = self.accelerator.unwrap_model(self.generator)
         generator.load_state_dict(pkg['generator'])
-        discriminators = {k:self.accelerator.unwrap_model(v) for k, v in self.discriminators.items()}
-        map(lambda kv: kv[1].load_state_dict(pkg['discriminators'][kv[0]]), discriminators.items())
+        for k, discriminator in self.discriminators.items():
+            discriminator = self.accelerator.unwrap_model(discriminator)
+            discriminator.load_state_dict(pkg['discriminators'][k])
 
         if restore_optimizer:
             self.optim_d.load_state_dict(pkg['optim_d'])
